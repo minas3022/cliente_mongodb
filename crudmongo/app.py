@@ -6,18 +6,28 @@ app = Flask(__name__)
 
 # Configuração do MongoDB
 client = MongoClient('mongodb://localhost:27017/')
-db = client['clientes']  # Nome do banco de dados
-collection = db['client']  # Nome da coleção (tabela)
+db = client['meuBanco']  # Nome do banco de dados
+collection = db['clientes']  # Nome da coleção (tabela)
 
-# Página inicial: Listar clientes e permitir pesquisa
+# Página inicial: Listar clientes, permitir pesquisa e ordenação por botão
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    sort_by = request.args.get('sort_by', 'nome')  # Ordenar por padrão pelo nome
+    order = request.args.get('order', 'asc')  # Ordem crescente por padrão
+
+    # Definir direção de ordenação
+    order_direction = 1 if order == 'asc' else -1
+
+    # Pesquisa por nome
+    query = {}
     if request.method == 'POST':
         nome_pesquisa = request.form['nome']
-        clientes = collection.find({"nome": {"$regex": nome_pesquisa, "$options": "i"}})
-    else:
-        clientes = collection.find()
-    return render_template('index.html', clientes=clientes)
+        query = {"nome": {"$regex": nome_pesquisa, "$options": "i"}}
+    
+    # Busca no MongoDB
+    clientes = collection.find(query).sort(sort_by, order_direction)
+
+    return render_template('index.html', clientes=clientes, sort_by=sort_by, order=order)
 
 # Criar cliente
 @app.route('/create', methods=['GET', 'POST'])
